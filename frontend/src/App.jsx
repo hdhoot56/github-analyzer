@@ -63,22 +63,42 @@ function App() {
   };
 
   const renderCommitChart = (commitActivity) => {
-    if (!commitActivity || commitActivity.length === 0) return null;
+    // Handle cases where commitActivity is not an array or is empty
+    if (!Array.isArray(commitActivity) || commitActivity.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-20 text-gray-400">
+          No commit activity data available
+        </div>
+      );
+    }
 
-    const maxCommits = Math.max(...commitActivity.map(week => week.total));
+    // Ensure all weeks have the expected structure
+    const validWeeks = commitActivity
+      .filter(week => week && typeof week === 'object' && 'total' in week)
+      .slice(-26); // Only take the last 26 weeks
+
+    if (validWeeks.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-20 text-gray-400">
+          No valid commit data to display
+        </div>
+      );
+    }
+
+    const maxCommits = Math.max(1, ...validWeeks.map(week => week.total || 0));
     
     return (
       <div className="flex items-end space-x-1 h-20">
-        {commitActivity.slice(-26).map((week, index) => (
+        {validWeeks.map((week, index) => (
           <div
             key={index}
             className="bg-primary opacity-60 hover:opacity-100 transition-opacity"
             style={{
-              height: `${(week.total / maxCommits) * 100}%`,
+              height: `${((week.total || 0) / maxCommits) * 100}%`,
               width: '8px',
-              minHeight: week.total > 0 ? '2px' : '1px'
+              minHeight: (week.total || 0) > 0 ? '2px' : '1px'
             }}
-            title={`Week ${index + 1}: ${week.total} commits`}
+            title={`Week ${index + 1}: ${week.total || 0} commits`}
           />
         ))}
       </div>
