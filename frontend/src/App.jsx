@@ -63,44 +63,190 @@ function App() {
   };
 
   const renderCommitChart = (commitActivity) => {
+    console.log('Commit Activity Data:', commitActivity);
+    
     // Handle cases where commitActivity is not an array or is empty
     if (!Array.isArray(commitActivity) || commitActivity.length === 0) {
       return (
-        <div className="flex items-center justify-center h-20 text-gray-400">
-          No commit activity data available
+        <div className="flex flex-col items-center justify-center h-40 p-4 text-center text-gray-400">
+          <svg className="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p>No commit activity data available</p>
+          <p className="text-xs mt-1">This repository might be new or have no commits yet.</p>
         </div>
       );
     }
 
-    // Ensure all weeks have the expected structure
-    const validWeeks = commitActivity
-      .filter(week => week && typeof week === 'object' && 'total' in week)
-      .slice(-26); // Only take the last 26 weeks
+    // Process the commit activity data
+    let validWeeks = [];
+    
+    // First try to use the commit activity data if available
+    if (commitActivity && commitActivity.length > 0) {
+      validWeeks = commitActivity
+        .filter(week => week && typeof week === 'object')
+        .map(week => {
+          // Handle both GitHub's format and our enhanced format
+          const timestamp = week.week || week.timestamp || 0;
+          const total = week.total || 0;
+          const days = week.days || [0, 0, 0, 0, 0, 0, 0];
+          
+          return {
+            timestamp,
+            total,
+            days,
+            date: new Date(timestamp * 1000)
+          };
+        })
+        .filter(week => !isNaN(week.date.getTime())) // Filter out invalid dates
+        .sort((a, b) => a.timestamp - b.timestamp) // Sort by timestamp
+        .slice(-26); // Get the last 26 weeks
+    }
+    
+    // Fallback: If no valid weeks from commit activity, try to use recent commits
+    if (validWeeks.length === 0 && repoData.recentCommits && Array.isArray(repoData.recentCommits)) {
+      console.log('Using recent commits as fallback for commit chart');
+      
+      // Group commits by week
+      const commitsByWeek = {};
+      repoData.recentCommits.forEach(commit => {
+        if (commit.commit && commit.commit.committer && commit.commit.committer.date) {
+          const commitDate = new Date(commit.commit.committer.date);
+          // Get start of week (Sunday)
+          const weekStart = new Date(commitDate);
+          weekStart.setDate(commitDate.getDate() - commitDate.getDay());
+          weekStart.setHours(0, 0, 0, 0);
+          const weekKey = weekStart.getTime();
+          
+          if (!commitsByWeek[weekKey]) {
+            commitsByWeek[weekKey] = {
+              timestamp: Math.floor(weekKey / 1000),
+              total: 0,
+              date: weekStart
+            };
+          }
+          commitsByWeek[weekKey].total++;
+        }
+      });
+      
+      validWeeks = Object.values(commitsByWeek)
+        .sort((a, b) => a.timestamp - b.timestamp)
+        .slice(-26);
+    }
 
     if (validWeeks.length === 0) {
       return (
-        <div className="flex items-center justify-center h-20 text-gray-400">
+        <div className="flex items-center justify-center h-40 text-gray-400">
           No valid commit data to display
         </div>
       );
     }
 
+    console.log('Processed Weeks:', validWeeks);
+    
+    // Calculate the maximum value for scaling from the last 26 weeks
     const maxCommits = Math.max(1, ...validWeeks.map(week => week.total || 0));
     
+    // Calculate the height of each bar relative to the maximum
+    const calculateBarHeight = (value) => {
+      if (maxCommits <= 0) return '2px';
+      // Calculate percentage of the max value (0-100%)
+      const percentage = (value / maxCommits) * 100;
+      // Ensure the bar is at least 2px tall if there are any commits
+      return `${Math.max(2, percentage)}%`;
+    };
+    
+    // Calculate the vertical position to make bars grow upward
+    const calculateBarPosition = (value) => {
+      if (maxCommits <= 0) return '100%';
+      const percentage = 100 - ((value / maxCommits) * 100);
+      return `${percentage}%`;
+    };
+    
+    // Generate timeline labels (first, middle, last)
+    const timelineLabels = [];
+    if (validWeeks.length > 0) {
+      timelineLabels.push({
+        label: validWeeks[0].date.toLocaleDateString(),
+        position: 'start'
+      });
+      
+      if (validWeeks.length > 1) {
+        const midIndex = Math.floor(validWeeks.length / 2);
+        timelineLabels.push({
+          label: validWeeks[midIndex].date.toLocaleDateString(),
+          position: 'middle'
+        });
+        
+        timelineLabels.push({
+          label: validWeeks[validWeeks.length - 1].date.toLocaleDateString(),
+          position: 'end'
+        });
+      }
+    }
+
     return (
-      <div className="flex items-end space-x-1 h-20">
-        {validWeeks.map((week, index) => (
-          <div
-            key={index}
-            className="bg-primary opacity-60 hover:opacity-100 transition-opacity"
-            style={{
-              height: `${((week.total || 0) / maxCommits) * 100}%`,
-              width: '8px',
-              minHeight: (week.total || 0) > 0 ? '2px' : '1px'
-            }}
-            title={`Week ${index + 1}: ${week.total || 0} commits`}
-          />
-        ))}
+      <div className="space-y-2 w-full">
+        <div className="flex justify-center h-48 w-full bg-gray-900 rounded-lg p-4 border border-gray-800 shadow-lg">
+          <div className="flex items-end h-full w-full max-w-4xl mx-auto relative">
+            {/* X-axis line */}
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gray-700"></div>
+            
+            {validWeeks.map((week, index) => {
+              const weekLabel = `${week.date.toLocaleDateString()}: ${week.total} commit${week.total !== 1 ? 's' : ''}`;
+              const barHeight = calculateBarHeight(week.total);
+              const barPosition = calculateBarPosition(week.total);
+              
+              return (
+                <div 
+                  key={index} 
+                  className="group relative flex-1 flex flex-col items-center mx-0.5 h-full"
+                  style={{
+                    minWidth: '8px',
+                    maxWidth: '16px'
+                  }}
+                >
+                  <div 
+                    className="w-full bg-gradient-to-t from-blue-500 to-blue-400 hover:from-blue-400 hover:to-blue-300 transition-all duration-200 rounded-t-sm absolute bottom-0"
+                    style={{
+                      height: barHeight,
+                      minHeight: week.total > 0 ? '2px' : '1px',
+                      width: '100%',
+                      bottom: '0',
+                      transition: 'all 0.3s ease',
+                      transformOrigin: 'bottom center',
+                      boxShadow: '0 0 10px rgba(59, 130, 246, 0.3)'
+                    }}
+                    title={weekLabel}
+                  >
+                    <div className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap shadow-lg border border-gray-700">
+                      {weekLabel}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Timeline */}
+        <div className="flex justify-between text-xs text-gray-500 mt-1">
+          {timelineLabels.map((item, idx) => (
+            <span 
+              key={idx} 
+              className={`${item.position === 'start' ? 'text-left' : item.position === 'end' ? 'text-right' : 'mx-auto'}`}
+            >
+              {item.label}
+            </span>
+          ))}
+        </div>
+        
+        {/* Legend */}
+        <div className="flex justify-between text-xs text-gray-400 mt-2">
+          <span>Older</span>
+          <span>Last 6 months</span>
+          <span>Recent</span>
+        </div>
       </div>
     );
   };
@@ -388,6 +534,24 @@ function App() {
                     ))}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* AI Insights */}
+            {data?.aiInsights?.summary && (
+              <div className="bg-dark-light border border-dark-lighter rounded-xl p-6 mb-8">
+                <h3 className="text-xl font-bold text-white mb-4">
+                  <span className="inline-flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    AI-Powered Analysis
+                  </span>
+                </h3>
+                <p className="text-gray-300 mb-2">{data.aiInsights.summary}</p>
+                <p className="text-xs text-gray-500 text-right">
+                  Generated on {new Date(data.aiInsights.generatedAt).toLocaleString()}
+                </p>
               </div>
             )}
 

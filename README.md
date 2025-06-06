@@ -1,95 +1,122 @@
 # GitHub Repository Analyzer
 
-> A comprehensive GitHub repository analysis tool built with Windsurf AI IDE, providing insights into repository metrics, contributors, and commit activity.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-43853D?style=flat&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 
-## 🚀 Features
+A powerful tool to analyze GitHub repositories, providing detailed insights and AI-powered analysis using GitHub's API and Cohere AI.
 
-- **Repository Analysis**: Comprehensive GitHub repo insights
-- **Contributor Data**: Top contributors with avatars and commit counts  
-- **Recent Activity**: Latest commits with author information
-- **Modern UI**: Windsurf-inspired dark theme with responsive design
-- **Error Handling**: Graceful handling of rate limits and invalid repositories
-- **Docker Ready**: Production-ready containerized deployment
+## ✨ Features
+
+- **Repository Analysis**: Get detailed statistics about any public GitHub repository
+- **Commit Visualization**: Interactive charts showing commit history and patterns
+- **AI-Powered Insights**: Advanced analysis of repository health and activity
+- **Contributor Analytics**: Understand contributor patterns and engagement
+- **Modern UI**: Clean, responsive interface with dark mode support
+- **Docker Support**: Easy deployment with Docker and Docker Compose
 
 ## 🛠️ Tech Stack
 
 ### Backend
 - **Node.js** with Express
 - **GitHub REST API** integration
+- **Cohere AI** for advanced analysis
 - **Axios** for HTTP requests
 - **CORS** enabled for cross-origin requests
+- **Winston** for logging
 
 ### Frontend  
 - **React 18** with Vite
 - **Tailwind CSS** for styling
+- **Chart.js** for data visualization
+- **React Icons** for UI elements
 - **Responsive Design** for all devices
 
 ### DevOps
 - **Docker** & Docker Compose
 - **Nginx** for production serving
 - **Health checks** and restart policies
+- **Environment-based configuration**
 
 ## 📁 Project Structure
 
 ```
 github-analyzer/
-├── docker-compose.yml
-├── README.md
+├── docker-compose.yml            # Docker Compose configuration
+├── docker-compose.override.yml   # Development overrides
+├── .env.example                 # Example environment variables
+├── .gitignore                   # Git ignore rules
+├── README.md                    # This file
 ├── backend/
-│   ├── Dockerfile
-│   ├── package.json
+│   ├── Dockerfile               # Backend Docker configuration
+│   ├── package.json             # Backend dependencies
 │   └── src/
-│       └── app.js
+│       ├── app.js               # Main application entry point
+│       └── services/
+│           └── cohereService.js  # Cohere AI integration
 └── frontend/
-    ├── Dockerfile
-    ├── nginx.conf
-    ├── package.json
-    ├── vite.config.js
-    ├── index.html
+    ├── Dockerfile               # Frontend Docker configuration
+    ├── nginx.conf                # Nginx configuration for production
+    ├── package.json              # Frontend dependencies
+    ├── vite.config.js            # Vite configuration
+    ├── index.html                # Main HTML entry point
     └── src/
-        ├── main.jsx
-        └── App.jsx
+        ├── main.jsx            # React entry point
+        ├── App.jsx              # Main React component
+        ├── components/          # Reusable UI components
+        ├── hooks/               # Custom React hooks
+        └── utils/               # Utility functions
 ```
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Docker and Docker Compose installed
-- Node.js 18+ (for development mode)
+- [Docker](https://www.docker.com/products/docker-desktop) and Docker Compose
+- [Node.js](https://nodejs.org/) 18+ (for development mode)
+- [Git](https://git-scm.com/)
 
-### Development with Docker (Recommended)
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/github-analyzer.git
-   cd github-analyzer
-   ```
-
-2. **Start the development environment**
-   ```bash
-   docker-compose -f docker-compose.yml -f docker-compose.override.yml up --build
-   ```
-
-3. **Access the application**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:5000
-   - Backend Health Check: http://localhost:5000/health
+### 1. Clone the Repository
+```bash
+git clone https://github.com/yourusername/github-analyzer.git
+cd github-analyzer
 ```
 
-**Access the application:**
-- Frontend: http://localhost
-- Backend API: http://localhost:5000
-- Health Check: http://localhost:5000/health
-
-### Development Mode
-
+### 2. Set Up Environment Variables
 ```bash
-# Backend
+# Copy the example environment file
+cp .env.example .env
+```
+
+Edit the `.env` file and add your:
+- GitHub Personal Access Token (with `repo` scope)
+- Cohere API Key
+
+### 3. Start with Docker (Recommended)
+```bash
+# Start the application
+docker-compose up --build -d
+
+# View logs
+docker-compose logs -f
+```
+
+### 4. Access the Application
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:5000
+- **Health Check**: http://localhost:5000/health
+
+### Development Mode (Without Docker)
+
+#### Backend
+```bash
 cd backend
 npm install
 npm start
+```
 
-# Frontend (in another terminal)
+#### Frontend
+```bash
 cd frontend
 npm install
 npm run dev
@@ -259,5 +286,4 @@ This project is licensed under the MIT License.
 
 ---
 
-**Demo Video**: [Link to Loom Recording]  
-**Windsurf Project**: [Link to Windsurf Share]
+**Demo Video**:https://www.loom.com/share/6c8174f34f81471aa396e8d359a02032?sid=1abb6fcf-c51e-4bf9-b2c0-20cc9b3602d8

@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 require('dotenv').config();
+const cohereService = require('./services/cohereService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -217,6 +218,65 @@ class GitHubService {
     }
   }
 
+  // Get commit activity stats (52 weeks)
+  async getCommitActivity(owner, repo) {
+    try {
+      console.log(`Fetching commit activity for ${owner}/${repo}`);
+      const url = `${this.baseURL}/repos/${owner}/${repo}/stats/commit_activity`;
+      console.log('GitHub API URL:', url);
+      
+      const response = await axios.get(url, {
+        headers: this.headers,
+        timeout: 30000 // Even longer timeout as this endpoint can be very slow
+      });
+      
+      console.log('GitHub API Response Status:', response.status);
+      console.log('Response Headers:', response.headers);
+      
+      if (!response.data) {
+        console.log('No commit activity data received');
+        return [];
+      }
+      
+      console.log('Raw commit activity data:', JSON.stringify(response.data, null, 2));
+      
+      console.log(`Received ${response.data.length} weeks of commit activity`);
+      
+      // Process the data to ensure it has the expected format
+      const now = Math.floor(Date.now() / 1000);
+      const weekInSeconds = 604800;
+      
+      return response.data.map((week, index, arr) => {
+        // Ensure we have a valid week object
+        if (!week || typeof week !== 'object') {
+          console.warn('Invalid week data:', week);
+          return null;
+        }
+        
+        // Calculate the week timestamp if not provided
+        const weekTimestamp = week.week || (now - (arr.length - index - 1) * weekInSeconds);
+        
+        // Ensure we have a total count
+        const total = typeof week.total === 'number' ? week.total : 
+                     Array.isArray(week.days) ? week.days.reduce((sum, day) => sum + (day || 0), 0) : 0;
+        
+        return {
+          week: weekTimestamp,
+          total: total,
+          days: Array.isArray(week.days) ? week.days : [0, 0, 0, 0, 0, 0, 0]
+        };
+      }).filter(Boolean); // Remove any null entries
+      
+    } catch (error) {
+      console.warn('Failed to fetch commit activity:', error.message);
+      if (error.response) {
+        console.warn('Response status:', error.response.status);
+        console.warn('Response data:', error.response.data);
+      }
+      return [];
+    }
+  }
+
   // Get recent commits with enhanced data
   async getRecentCommits(owner, repo) {
     try {
@@ -227,23 +287,23 @@ class GitHubService {
       });
       return response.data;
     } catch (error) {
-      console.warn('Failed to fetch recent commits:', error.message);
-      return [];
-    }
   }
+  throw new Error('Failed to fetch repository information');
+}
 
-  // Get commit activity stats (52 weeks)
-  async getCommitActivity(owner, repo) {
-    try {
-      const response = await axios.get(`${this.baseURL}/repos/${owner}/${repo}/stats/commit_activity`, {
-        headers: this.headers,
-        timeout: 15000 // Longer timeout as this endpoint is slower
-      });
-      return response.data || [];
-    } catch (error) {
-      console.warn('Failed to fetch commit activity:', error.message);
-      return [];
-    }
+// Get contributors information
+async getContributors(owner, repo) {
+  try {
+    const response = await axios.get(`${this.baseURL}/repos/${owner}/${repo}/contributors`, {
+      headers: this.headers,
+      params: { per_page: 10 },
+      timeout: 10000
+    });
+    return response.data;
+  } catch (error) {
+    console.warn('Failed to fetch contributors:', error.message);
+    return [];
+  }
   }
 
   // Get repository languages
@@ -377,6 +437,9 @@ app.post('/api/analyze', async (req, res) => {
       commitsData
     );
 
+    // Generate AI analysis
+    const aiAnalysis = await cohereService.generateAnalysis(repoData);
+
     // Format the enhanced response
     const analysisData = {
       repository: {
@@ -422,6 +485,10 @@ app.post('/api/analyze', async (req, res) => {
         commitFrequency: commitAnalysis,
         commitActivity: activityData,
         mcpInsights: mcpAnalysis
+      },
+      aiInsights: {
+        summary: aiAnalysis,
+        generatedAt: new Date().toISOString()
       },
       analyzedAt: new Date().toISOString()
     };
