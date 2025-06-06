@@ -9,6 +9,8 @@ A powerful tool to analyze GitHub repositories, providing detailed insights and 
 
 ## ✨ Features
 
+> **Note**: This project's website layout and architecture were developed using Windsurf AI and the Model Context Protocol (MCP), providing an intelligent and responsive user interface.
+
 - **Repository Analysis**: Get detailed statistics about any public GitHub repository
 - **Commit Visualization**: Interactive charts showing commit history and patterns
 - **AI-Powered Insights**: Advanced analysis of repository health and activity
@@ -279,7 +281,7 @@ This project is licensed under the MIT License.
 
 ## 🙏 Acknowledgments
 
-- Built with [Windsurf AI IDE](https://windsurf.ai)
+- Built with [Windsurf AI](https://windsurf.ai) and the Model Context Protocol (MCP)
 - GitHub REST API for data
 - React and Node.js communities
 - Docker for containerization
